@@ -10,9 +10,10 @@ fleet scale up and down in real time.
 It grows from a tiny starting point — a raw C++ socket server, two replicas behind nginx, and a
 Jenkins pipeline — which remain the repository's first commits.
 
-> **Status.** Foundation milestone: the fleet runs under Docker Compose with one command, the
-> backend reports its load and health, and continuous integration builds it and runs the tests.
-> Elasticity (the autoscaler) and the live dashboard follow. See [`docs/roadmap.md`](docs/roadmap.md).
+> **Status.** Elasticity milestone: the fleet runs with one command, the backend reports its load
+> and health, and a controller scales the backend set up and down to match traffic — rewriting the
+> load balancer live, with no dropped requests. The live dashboard follows. See
+> [`docs/roadmap.md`](docs/roadmap.md) and [`docs/elasticity.md`](docs/elasticity.md).
 
 ## Quick start
 
@@ -22,16 +23,42 @@ Requires Docker with the Compose plugin.
 docker compose up --build
 ```
 
-Then send it some traffic:
+This starts the load balancer and the controller; the controller then starts the backends and
+keeps managing them. Send it some traffic:
 
 ```bash
 curl http://localhost:8088/            # Served by backend: <container>
 curl http://localhost:8088/healthz     # ok
 curl http://localhost:8088/metrics     # Prometheus-format load metrics
+curl http://localhost:8089/state       # the controller's live view of the fleet
 ```
 
-Repeat the first request and the backend name alternates — the load balancer is spreading traffic
-across the fleet.
+Repeat the first request and the backend name changes — the load balancer is spreading traffic
+across the fleet. Tear everything down (including backends the controller spawned) with:
+
+```bash
+bash scripts/down.sh
+```
+
+## Watch it scale
+
+Drive traffic with the load generator and watch the fleet grow and shrink in the controller's
+`/state`:
+
+```bash
+python loadgen/loadgen.py ramp --start 2 --end 100 --duration 60
+python loadgen/loadgen.py spike --base 4 --peak 80 --duration 45
+python loadgen/loadgen.py steady --concurrency 32 --duration 30
+```
+
+Or run the measured end-to-end scale cycle, which records a CSV, a chart and a summary:
+
+```bash
+python scripts/scale_run.py
+```
+
+See [`docs/elasticity.md`](docs/elasticity.md) for how the autoscaler decides and a recorded run
+with real numbers.
 
 ## The backend
 
@@ -78,8 +105,8 @@ GitHub Actions runs the unit tests and an end-to-end smoke test on every push. A
 
 ## Ports
 
-`8088` load balancer · `8089` controller (later) · `8090` dashboard (later). Backends are internal
-to the Compose network.
+`8088` load balancer · `8089` controller API · `8090` dashboard (later). Backends are internal to
+the Compose network.
 
 ## License
 
