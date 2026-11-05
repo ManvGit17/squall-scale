@@ -142,7 +142,9 @@ int main(int argc, char** argv) {
               << " threads=" << pool.worker_count() << " work_ms=" << work_ms
               << std::endl;
 
-    auto handle = [&counters, &host, &uptime_seconds, work_ms](int client_fd) {
+    using clock = std::chrono::steady_clock;
+    auto handle = [&counters, &host, &uptime_seconds, work_ms](
+                      int client_fd, clock::time_point accepted) {
         char buf[4096];
         const ssize_t n = ::recv(client_fd, buf, sizeof(buf) - 1, 0);
         std::string response;
@@ -162,7 +164,6 @@ int main(int argc, char** argv) {
             } else {
                 // Any application path: count it, do the (simulated) work.
                 counters.request_started();
-                const auto t0 = std::chrono::steady_clock::now();
                 if (work_ms > 0) {
                     std::this_thread::sleep_for(
                         std::chrono::milliseconds(work_ms));
@@ -170,9 +171,12 @@ int main(int argc, char** argv) {
                 response = ss::http::make_response(
                     200, "OK", "text/plain",
                     "Served by backend: " + host + "\n");
+                // Latency is measured from acceptance, so it includes time
+                // spent waiting in the pool queue — that queue wait is what
+                // signals saturation to the autoscaler.
                 const auto micros =
                     std::chrono::duration_cast<std::chrono::microseconds>(
-                        std::chrono::steady_clock::now() - t0)
+                        clock::now() - accepted)
                         .count();
                 send_all(client_fd, response);
                 ::close(client_fd);
@@ -192,8 +196,11 @@ int main(int argc, char** argv) {
 
         const int client_fd = ::accept(server_fd, nullptr, nullptr);
         if (client_fd < 0) continue;
+        const auto accepted = clock::now();
 
-        if (!pool.submit([client_fd, &handle] { handle(client_fd); })) {
+        if (!pool.submit([client_fd, accepted, &handle] {
+                handle(client_fd, accepted);
+            })) {
             // Pool saturated: shed the load rather than queue without bound.
             const std::string busy = ss::http::make_response(
                 503, "Service Unavailable", "text/plain", "busy\n");
