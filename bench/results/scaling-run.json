@@ -1,0 +1,22 @@
+{
+  "params": {
+    "ramp_s": 25.0,
+    "hold_s": 45.0,
+    "idle_s": 80.0,
+    "peak_concurrency": 120
+  },
+  "config": {
+    "min_backends": 2,
+    "max_backends": 6,
+    "high_watermark_ms": 150.0,
+    "low_watermark_ms": 70.0,
+    "up_cooldown_s": 10.0,
+    "down_cooldown_s": 25.0
+  },
+  "min_fleet": 2,
+  "peak_fleet": 4,
+  "final_fleet": 2,
+  "peak_signal_ms": 194.6,
+  "first_scale_up_at_s": 17.4,
+  "samples": 148
+}
