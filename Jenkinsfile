@@ -3,41 +3,34 @@ pipeline {
 
     stages {
 
-        stage('Build Backend Image') {
+        stage('Unit tests') {
             steps {
-                sh '''
-                docker rmi -f backend-app || true
-                docker build -t backend-app backend
-                '''
+                sh 'docker build --target test backend'
             }
         }
 
-        stage('Deploy Backend Containers') {
+        stage('Build and deploy fleet') {
             steps {
-                sh '''
-                docker network create fleet-net || true
-                docker rm -f backend1 backend2 || true
-                docker run -d --name backend1 --network fleet-net backend-app
-                docker run -d --name backend2 --network fleet-net backend-app
-                sleep 3
-                '''
+                sh 'docker compose up -d --build'
             }
         }
 
-        stage('Deploy NGINX Load Balancer') {
+        stage('Smoke test') {
             steps {
-                sh '''
-                docker rm -f nginx-lb || true
-                docker run -d --name nginx-lb --network fleet-net -p 80:80 nginx
-                sleep 2
-                docker cp nginx/default.conf nginx-lb:/etc/nginx/conf.d/default.conf
-                docker exec nginx-lb nginx -s reload
-                '''
+                // Reach the load balancer over the Compose network by service
+                // name, so the check works whether or not the published port
+                // is routable from the agent.
+                sh 'docker run --rm --network squallscale curlimages/curl:8.11.1 -fsS http://lb/healthz | grep -q ok'
+                sh 'docker run --rm --network squallscale curlimages/curl:8.11.1 -fsS http://lb/ | grep -q "Served by backend:"'
+                sh 'docker run --rm --network squallscale curlimages/curl:8.11.1 -fsS http://lb/metrics | grep -q squallscale_requests_total'
             }
         }
     }
 
     post {
+        always {
+            sh 'docker compose down -v || true'
+        }
         failure {
             echo 'Pipeline failed. Check console logs for errors.'
         }
