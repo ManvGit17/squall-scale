@@ -1,0 +1,33 @@
+name: CI
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+
+jobs:
+  backend:
+    name: Backend build, unit tests, smoke
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Compile and run C++ unit tests
+        run: docker build --target test backend
+
+      - name: Build runtime image
+        run: docker build -t squallscale-backend:ci backend
+
+      - name: Bring up the fleet
+        run: docker compose up -d --build
+
+      - name: Smoke test through the load balancer
+        run: bash scripts/smoke.sh http://localhost:8088
+
+      - name: Show logs on failure
+        if: failure()
+        run: docker compose logs
+
+      - name: Tear down
+        if: always()
+        run: docker compose down -v

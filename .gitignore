@@ -1,0 +1,19 @@
+# Compiled backend artifacts
+backend/app
+backend/test_main
+*.o
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# Node / dashboard (added later)
+node_modules/
+dist/
+.vite/
+
+# OS cruft
+.DS_Store
+Thumbs.db
