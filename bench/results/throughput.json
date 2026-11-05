@@ -1,0 +1,43 @@
+{
+  "generated_utc": "2026-11-05T16:28:59Z",
+  "params": {
+    "work_ms": 40,
+    "concurrency": 32,
+    "duration_s": 8
+  },
+  "runs": [
+    {
+      "requests": 230,
+      "elapsed_s": 9.261,
+      "throughput_rps": 24.8,
+      "latency_ms_p50": 1287.7,
+      "latency_ms_p95": 1288.8,
+      "latency_ms_p99": 1289.1,
+      "latency_ms_mean": 1200.5,
+      "workers": 1,
+      "speedup_vs_1_worker": 1.0
+    },
+    {
+      "requests": 1616,
+      "elapsed_s": 8.148,
+      "throughput_rps": 198.3,
+      "latency_ms_p50": 160.8,
+      "latency_ms_p95": 161.8,
+      "latency_ms_p99": 162.4,
+      "latency_ms_mean": 159.7,
+      "workers": 8,
+      "speedup_vs_1_worker": 8.0
+    },
+    {
+      "requests": 3213,
+      "elapsed_s": 8.078,
+      "throughput_rps": 397.7,
+      "latency_ms_p50": 80.3,
+      "latency_ms_p95": 82.6,
+      "latency_ms_p99": 83.9,
+      "latency_ms_mean": 80.1,
+      "workers": 16,
+      "speedup_vs_1_worker": 16.04
+    }
+  ]
+}
