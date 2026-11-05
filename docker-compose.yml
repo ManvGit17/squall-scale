@@ -1,41 +1,61 @@
-# squallscale — one-command local fleet.
+# squallscale — one-command elastic fleet.
 #
-#   docker compose up --build
+#   docker compose up --build       bring up the load balancer and controller
+#   bash scripts/down.sh            tear everything down (incl. spawned backends)
 #
-# Brings up two C++ backends behind an nginx load balancer, reachable at
-# http://localhost:8088. In the elasticity milestone a controller takes over
-# and grows or shrinks the backend set on its own.
+# The controller owns the backends: it starts them from the image built by
+# backend-builder, scales the set to match load, and rewrites the nginx
+# upstream (shared via the lb-conf volume), reloading nginx with no dropped
+# requests. Reach the fleet at http://localhost:8088 and the controller API
+# at http://localhost:8089/state.
 
 services:
-  backend1:
+  # Builds the backend image the controller spawns, then exits.
+  backend-builder:
     build: ./backend
     image: squallscale-backend:local
-    environment:
-      WORK_MS: "${WORK_MS:-40}"
-      THREADS: "${THREADS:-8}"
-    networks: [squallscale]
-
-  backend2:
-    build: ./backend
-    image: squallscale-backend:local
-    environment:
-      WORK_MS: "${WORK_MS:-40}"
-      THREADS: "${THREADS:-8}"
-    networks: [squallscale]
+    entrypoint: ["true"]
+    restart: "no"
 
   lb:
     image: nginx:1.27-alpine
-    ports:
-      - "8088:80"
+    container_name: squallscale-lb
     volumes:
       - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
-      - ./nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
-    depends_on:
-      backend1:
-        condition: service_healthy
-      backend2:
-        condition: service_healthy
+      - lb-conf:/etc/nginx/conf.d
+    ports:
+      - "8088:80"
     networks: [squallscale]
+    depends_on:
+      backend-builder:
+        condition: service_completed_successfully
+
+  controller:
+    build: ./controller
+    container_name: squallscale-controller
+    environment:
+      MIN_BACKENDS: "${MIN_BACKENDS:-2}"
+      MAX_BACKENDS: "${MAX_BACKENDS:-6}"
+      HIGH_WATERMARK_MS: "${HIGH_WATERMARK_MS:-150}"
+      LOW_WATERMARK_MS: "${LOW_WATERMARK_MS:-70}"
+      UP_COOLDOWN_S: "${UP_COOLDOWN_S:-10}"
+      DOWN_COOLDOWN_S: "${DOWN_COOLDOWN_S:-25}"
+      WORK_MS: "${WORK_MS:-40}"
+      THREADS: "${THREADS:-8}"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - lb-conf:/nginx-conf
+    ports:
+      - "8089:8089"
+    networks: [squallscale]
+    depends_on:
+      backend-builder:
+        condition: service_completed_successfully
+      lb:
+        condition: service_started
+
+volumes:
+  lb-conf:
 
 networks:
   squallscale:

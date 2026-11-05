@@ -6,17 +6,33 @@ on:
   pull_request:
 
 jobs:
+  python:
+    name: Controller unit tests
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: controller
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install pytest==8.3.4
+      - run: python -m pytest tests -q
+
   backend:
-    name: Backend build, unit tests, smoke
+    name: Backend C++ unit tests
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-
       - name: Compile and run C++ unit tests
         run: docker build --target test backend
 
-      - name: Build runtime image
-        run: docker build -t squallscale-backend:ci backend
+  integration:
+    name: End-to-end fleet smoke
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
 
       - name: Bring up the fleet
         run: docker compose up -d --build
@@ -24,10 +40,20 @@ jobs:
       - name: Smoke test through the load balancer
         run: bash scripts/smoke.sh http://localhost:8088
 
+      - name: Controller reports a healthy fleet
+        run: |
+          for _ in $(seq 1 30); do
+            size=$(curl -fsS http://localhost:8089/state | python3 -c "import sys,json; print(json.load(sys.stdin)['fleet_size'])" 2>/dev/null || echo 0)
+            echo "fleet_size=$size"
+            if [ "$size" -ge 2 ]; then exit 0; fi
+            sleep 2
+          done
+          echo "controller never reported the minimum fleet"; exit 1
+
       - name: Show logs on failure
         if: failure()
         run: docker compose logs
 
       - name: Tear down
         if: always()
-        run: docker compose down -v
+        run: bash scripts/down.sh
