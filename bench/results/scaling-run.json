@@ -16,7 +16,7 @@
   "min_fleet": 2,
   "peak_fleet": 4,
   "final_fleet": 2,
-  "peak_signal_ms": 194.6,
+  "peak_signal_ms": 194.3,
   "first_scale_up_at_s": 17.4,
   "samples": 148
 }

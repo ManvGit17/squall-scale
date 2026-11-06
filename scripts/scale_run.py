@@ -122,6 +122,7 @@ def main() -> None:
     runner = LoadRunner(args.url, sched, total, args.peak)
 
     rows: list[dict] = []
+    frames: list[dict] = []
     cfg_holder: dict = {}
 
     def record():
@@ -143,6 +144,16 @@ def main() -> None:
                          "signal_ms": st["signal_ms"],
                          "offered": sched(t), "in_flight": round(in_flight, 1),
                          "rps": round(rps, 1)})
+            # A trimmed snapshot the dashboard can replay offline.
+            frames.append({"t": t, "fleet_size": st["fleet_size"],
+                           "signal_ms": st["signal_ms"], "offered": sched(t),
+                           "backends": [
+                               {"name": b["name"],
+                                "healthy": b.get("healthy", False),
+                                "in_flight": b.get("in_flight", 0),
+                                "recent_latency_ms": b.get("recent_latency_ms"),
+                                "recent_rps": b.get("recent_rps", 0)}
+                               for b in st["backends"]]})
             time.sleep(1)
 
     poller = threading.Thread(target=record, daemon=True)
@@ -184,8 +195,16 @@ def main() -> None:
     (RESULTS / "scaling-run.json").write_text(
         json.dumps(summary, indent=2) + "\n", encoding="utf-8")
 
+    # Replay timeline for the dashboard's offline demo.
+    replay = {"config": cfg_holder, "params": summary["params"], "frames": frames}
+    replay_json = json.dumps(replay, separators=(",", ":")) + "\n"
+    (RESULTS / "replay.json").write_text(replay_json, encoding="utf-8")
+    dash_public = ROOT / "dashboard" / "public"
+    if dash_public.exists():
+        (dash_public / "replay.json").write_text(replay_json, encoding="utf-8")
+
     print(json.dumps(summary, indent=2))
-    print(f"wrote {RESULTS/'scaling-run.csv'}, scaling-run.svg, scaling-run.json")
+    print(f"wrote {RESULTS/'scaling-run.csv'}, scaling-run.svg, scaling-run.json, replay.json")
 
 
 if __name__ == "__main__":
