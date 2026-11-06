@@ -54,6 +54,17 @@ services:
       lb:
         condition: service_started
 
+  dashboard:
+    build: ./dashboard
+    image: squallscale-dashboard:local
+    container_name: squallscale-dashboard
+    ports:
+      - "8090:80"
+    networks: [squallscale]
+    depends_on:
+      controller:
+        condition: service_started
+
 volumes:
   lb-conf:
 
