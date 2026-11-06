@@ -28,6 +28,21 @@ jobs:
       - name: Compile and run C++ unit tests
         run: docker build --target test backend
 
+  dashboard:
+    name: Dashboard build and test
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: dashboard
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - run: npm ci
+      - run: npm test
+      - run: npm run build
+
   integration:
     name: End-to-end fleet smoke
     runs-on: ubuntu-latest
@@ -49,6 +64,9 @@ jobs:
             sleep 2
           done
           echo "controller never reported the minimum fleet"; exit 1
+
+      - name: Dashboard is served
+        run: curl -fsS -o /dev/null http://localhost:8090/
 
       - name: Show logs on failure
         if: failure()
