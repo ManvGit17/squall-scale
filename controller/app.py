@@ -16,6 +16,7 @@ from statistics import fmean
 import docker
 import uvicorn
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 
 from config import Config
 from fleet import Fleet
@@ -182,6 +183,15 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(title="squallscale controller", lifespan=lifespan)
+
+# The dashboard is served from a different origin (port 8090) and only reads
+# state, so allow cross-origin GETs. This is a local, self-hosted tool.
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_methods=["GET"],
+    allow_headers=["*"],
+)
 
 
 @app.get("/healthz")
