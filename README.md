@@ -22,12 +22,12 @@ dropped requests - and a dashboard animates the fleet scaling up and down in rea
 
 Autoscaling, load balancing, health checks and zero-downtime config reloads are the core of cloud
 computing, but they usually live behind a managed service where you can't see them work. squallscale
-builds them from the ground up — a raw C++ socket server, nginx, a controller and a pipeline — and
+builds them from the ground up - a raw C++ socket server, nginx, a controller and a pipeline - and
 then makes them **visible**: the dashboard shows each backend appear and vanish, requests flowing to
 them, and latency driving the fleet's size against the scaling watermarks.
 
-It grows from a five-file starting point — the C++ server, two replicas behind nginx, and a Jenkins
-pipeline — which remain the repository's first commits.
+It grows from a five-file starting point - the C++ server, two replicas behind nginx, and a Jenkins
+pipeline - which remain the repository's first commits.
 
 ## What's inside
 
@@ -67,10 +67,10 @@ bash scripts/down.sh
 
 Every number here comes from a script you can rerun.
 
-- **Thread-pool throughput** — one worker (serialized, like the original blocking loop) reaches
+- **Thread-pool throughput** — one worker (serialised, like the original blocking loop) reaches
   ~25 rps; eight and sixteen workers scale it to ~198 and ~398 rps.
   → [`bench/benchmark.py`](bench/benchmark.py), [results](bench/results/throughput.md)
-- **A full scale cycle** — under a ramp to 120 concurrent clients the fleet grows 2 → 4 backends,
+- **A full-scale cycle** — under a ramp to 120 concurrent clients, the fleet grows 2 → 4 backends,
   throughput rises from ~400 to ~795 rps, latency settles near the watermark, then it drains back to
   2 when the load stops.
   → [`scripts/scale_run.py`](scripts/scale_run.py), [write-up](docs/elasticity.md)
