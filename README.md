@@ -5,8 +5,8 @@
 ### A self-hosted autoscaling platform you can watch breathe.
 
 A fleet of small C++ backends behind an nginx load balancer. A controller watches their load and
-adds or removes backends as traffic rises and falls — rewriting the load balancer live, with no
-dropped requests — and a dashboard animates the fleet scaling up and down in real time.
+adds or removes backends as traffic rises and falls - rewriting the load balancer live, with no
+dropped requests - and a dashboard animates the fleet scaling up and down in real time.
 
 [![CI](https://github.com/ManvGit17/squall-scale/actions/workflows/ci.yml/badge.svg)](https://github.com/ManvGit17/squall-scale/actions/workflows/ci.yml)
 [![Release](https://img.shields.io/github/v/release/ManvGit17/squall-scale?color=e0567c)](https://github.com/ManvGit17/squall-scale/releases)
